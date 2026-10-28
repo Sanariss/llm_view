@@ -1,51 +1,33 @@
 package ru.basil.llm.llmview.controller;
 
-import jakarta.servlet.http.HttpSession;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
 /**
  * Контроллер страницы авторизации /authz.
- * Логин и пароль берутся из application.properties (authz.login / authz.pwd).
+ * Обработка POST-запроса входа выполняется Spring Security
+ * (loginProcessingUrl = /authz, см. SecurityConfig).
  */
 @Controller
 public class AuthzController {
 
-    @Value("${authz.login}")
-    private String expectedLogin;
-
-    @Value("${authz.pwd}")
-    private String expectedPwd;
-
     /**
      * Открывает страницу авторизации.
+     * Если в параметрах есть flag ошибки (?error) — на странице
+     * показывается всплывающее окно «авторизация не удалась».
      */
     @GetMapping("/authz")
-    public String authz() {
-        return "authz";
-    }
-
-    /**
-     * Проверка введённых логина и пароля:
-     * - если значения совпадают с authz.login / authz.pwd — редирект на /index;
-     * - если не совпадают — возврат на страницу authz с флагом ошибки,
-     *   по которому на странице показывается всплывающее окно
-     *   «авторизация не удалась».
-     */
-    @PostMapping("/authz")
-    public String login(@RequestParam("login") String login,
-                        @RequestParam("pwd") String pwd,
-                        Model model,
-                        HttpSession session) {
-        if (expectedLogin.equals(login) && expectedPwd.equals(pwd)) {
-            session.setAttribute("authz.authenticated", Boolean.TRUE);
-            return "redirect:/index";
+    public String authz(@RequestParam(value = "error", required = false) String error,
+                        @RequestParam(value = "logout", required = false) String logout,
+                        Model model) {
+        if (error != null) {
+            model.addAttribute("authFailed", true);
         }
-        model.addAttribute("authFailed", true);
+        if (logout != null) {
+            model.addAttribute("loggedOut", true);
+        }
         return "authz";
     }
 }

@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <title>Main</title>
+    <style>
+        * { box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; margin: 0; background: #f5f5f5; }
+        .layout { display: flex; min-height: 100vh; }
+
+        /* Меню с левой стороны */
+        .sidebar { width: 220px; background: #2c3e50; color: #fff; display: flex; flex-direction: column; padding: 16px; }
+        .sidebar h3 { margin: 0 0 16px; font-size: 18px; }
+        .menu-btn { display: block; width: 100%; padding: 10px 12px; margin-bottom: 10px; background: #4a6cf7; color: #fff;
+                    border: none; border-radius: 4px; cursor: pointer; font-size: 15px; text-align: left; text-decoration: none; }
+        .menu-btn:hover { background: #3a5ce5; }
+
+        /* Кнопка выхода в нижнем левом углу */
+        .logout-area { margin-top: auto; }
+        .logout-btn { display: block; width: 100%; padding: 10px 12px; background: #e74c3c; color: #fff;
+                      border: none; border-radius: 4px; cursor: pointer; font-size: 15px; text-align: center; }
+        .logout-btn:hover { background: #c0392b; }
+
+        .content { flex: 1; padding: 32px; }
+        .user { color: #666; font-size: 14px; }
+    </style>
+</head>
+<body>
+<div class="layout">
+    <!-- Левое меню -->
+    <nav class="sidebar">
+        <h3>Меню</h3>
+        <!-- Ссылки реализованы в виде кнопок -->
+        <a class="menu-btn" th:href="@{/index}">Index</a>
+        <a class="menu-btn" th:href="@{/authz}">Authz</a>
+
+        <!-- Кнопка выхода в нижнем левом углу -->
+        <div class="logout-area">
+            <form th:action="@{/logout}" method="post">
+                <button type="submit" class="logout-btn">Выход</button>
+            </form>
+        </div>
+    </nav>
+
+    <main class="content">
+        <h1>Main</h1>
+        <p>Главная страница. Выберите пункт в меню слева.</p>
+        <p class="user" sec:authorize="isAuthenticated()">
+            Авторизован как: <span sec:authentication="name"></span>
+        </p>
+    </main>
+</div>
+</body>
+</html>

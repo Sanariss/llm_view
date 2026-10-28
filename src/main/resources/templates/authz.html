@@ -10,20 +10,23 @@
         input { width: 100%; padding: 8px; margin-top: 4px; box-sizing: border-box; }
         button { margin-top: 16px; width: 100%; padding: 10px; background: #4a6cf7; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; }
         button:hover { background: #3a5ce5; }
+        .info { margin-top: 12px; color: #2e7d32; font-size: 14px; }
     </style>
 </head>
 <body>
 <div class="card">
     <h2>Вход</h2>
+    <!-- Обработчик входа Spring Security: POST на /authz (параметры username/password) -->
     <form th:action="@{/authz}" method="post">
-        <label for="login">Логин</label>
-        <input type="text" id="login" name="login" placeholder="Логин" required>
+        <label for="username">Логин</label>
+        <input type="text" id="username" name="username" placeholder="Логин" required>
 
-        <label for="pwd">Пароль</label>
-        <input type="password" id="pwd" name="pwd" placeholder="Пароль" required>
+        <label for="password">Пароль</label>
+        <input type="password" id="password" name="password" placeholder="Пароль" required>
 
         <button type="submit" id="loginBtn">login</button>
     </form>
+    <p class="info" th:if="${loggedOut}">Вы вышли из системы.</p>
 </div>
 
 <!-- Всплывающее окно при неудачной авторизации -->
