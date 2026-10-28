@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="ru" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Авторизация</title>
+    <style>
+        body { font-family: Arial, sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; background: #f5f5f5; }
+        .card { background: #fff; padding: 32px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,.1); width: 300px; }
+        label { display: block; margin-top: 12px; font-weight: bold; }
+        input { width: 100%; padding: 8px; margin-top: 4px; box-sizing: border-box; }
+        button { margin-top: 16px; width: 100%; padding: 10px; background: #4a6cf7; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; }
+        button:hover { background: #3a5ce5; }
+    </style>
+</head>
+<body>
+<div class="card">
+    <h2>Вход</h2>
+    <form th:action="@{/authz}" method="post">
+        <label for="login">Логин</label>
+        <input type="text" id="login" name="login" placeholder="Логин" required>
+
+        <label for="pwd">Пароль</label>
+        <input type="password" id="pwd" name="pwd" placeholder="Пароль" required>
+
+        <button type="submit" id="loginBtn">login</button>
+    </form>
+</div>
+
+<!-- Всплывающее окно при неудачной авторизации -->
+<script th:if="${authFailed}">
+    window.addEventListener('DOMContentLoaded', function () {
+        alert('авторизация не удалась');
+    });
+</script>
+</body>
+</html>
