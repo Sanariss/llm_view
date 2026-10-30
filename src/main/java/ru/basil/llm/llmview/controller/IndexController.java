@@ -1,27 +1,21 @@
 package ru.basil.llm.llmview.controller;
 
+import jakarta.servlet.http.HttpSession;
 import org.springframework.stereotype.Controller;
-import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 
 /**
- * Контроллер страницы /index. Доступен только авторизованным пользователям
- * (защита настроена через Spring Security в SecurityConfig).
+ * Главная страница /index — меню с кнопками «Регистрация» и «Авторизация».
  */
 @Controller
 public class IndexController {
 
-    @GetMapping("/index")
-    public String index(Model model) {
-        // Текст "Hello World" передаётся в модель и подставляется в шаблон Thymeleaf
-        model.addAttribute("message", helloWorld());
+    @GetMapping({"/", "/index"})
+    public String index(HttpSession session) {
+        // Если пользователь уже вошёл — сразу на страницу трат
+        if (SessionUtil.isAuthed(session)) {
+            return "redirect:/main";
+        }
         return "index";
-    }
-
-    /**
-     * Текст страницы, возвращаемый контроллером.
-     */
-    static String helloWorld() {
-        return "Hello World";
     }
 }

@@ -1,16 +1,22 @@
 <!DOCTYPE html>
-<html lang="ru" xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org" lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>Hello World</title>
-    <style>
-        body { font-family: Arial, sans-serif; margin: 0; background: #f5f5f5; }
-        .content { padding: 32px; }
-    </style>
+    <title>Контроль трат — главная</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
 </head>
 <body>
-<div class="content">
-    <h1 th:text="${message}">Hello World</h1>
+<div class="container">
+    <div class="card">
+        <h1>Контроль трат</h1>
+        <p class="subtitle">Учёт личных расходов по категориям и месяцам</p>
+
+        <!-- Меню с пунктами-кнопками -->
+        <nav>
+            <a class="btn btn-lg btn-block" th:href="@{/reg}" style="text-align:center">Регистрация</a>
+            <a class="btn btn-lg btn-block" th:href="@{/auth}" style="text-align:center">Авторизация</a>
+        </nav>
+    </div>
 </div>
 </body>
 </html>
