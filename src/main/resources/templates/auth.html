@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Контроль трат — авторизация</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+<div class="container">
+    <div class="card">
+        <h1>Авторизация</h1>
+        <p class="subtitle">Введите логин и пароль. Проверка выполняется по in-memory базе (таблица siteauth).</p>
+
+        <!-- Сообщения -->
+        <div class="alert alert-success" th:if="${registeredOk}">
+            Регистрация прошла успешно! Введите логин и пароль для входа.
+        </div>
+        <div class="alert alert-success" th:if="${param.logout}">Вы вышли из системы.</div>
+        <div class="alert alert-error" th:if="${authError}" th:text="${authError}"></div>
+
+        <form th:action="@{/auth}" th:object="${loginForm}" method="post">
+            <div class="form-group">
+                <label for="login">Логин *</label>
+                <input type="text" id="login" th:field="*{login}" placeholder="ivan">
+                <div class="field-error" th:if="${#fields.hasErrors('login')}" th:errors="*{login}"></div>
+            </div>
+            <div class="form-group">
+                <label for="password">Пароль *</label>
+                <input type="password" id="password" th:field="*{password}" placeholder="••••••••">
+                <div class="field-error" th:if="${#fields.hasErrors('password')}" th:errors="*{password}"></div>
+            </div>
+
+            <div class="actions">
+                <button type="submit" class="btn">Войти</button>
+                <a class="btn btn-secondary" th:href="@{/index}" style="text-align:center">Отмена</a>
+            </div>
+        </form>
+
+        <p class="muted" style="margin-top:16px">
+            Нет аккаунта? <a th:href="@{/reg}">Зарегистрируйтесь</a>
+        </p>
+    </div>
+</div>
+</body>
+</html>
