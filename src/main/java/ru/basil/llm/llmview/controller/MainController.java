@@ -68,6 +68,37 @@ public class MainController {
         return redirectToMain(year, "");
     }
 
+    /** Добавление года. */
+    @PostMapping("/main/year/add")
+    public String addYear(@RequestParam int year,
+                          HttpSession session) {
+        if (!SessionUtil.isAuthed(session)) {
+            return "redirect:/auth";
+        }
+        String error = expenseService.addYear(year);
+        if (error != null) {
+            return redirectToMain(null, "yearError=1&msg=" + java.net.URLEncoder.encode(error,
+                    java.nio.charset.StandardCharsets.UTF_8));
+        }
+        // после добавления переключаемся на новый год
+        return "redirect:/main?year=" + year;
+    }
+
+    /** Удаление года вместе со всеми суммами трат за этот год. */
+    @PostMapping("/main/year/delete")
+    public String deleteYear(@RequestParam int year,
+                             HttpSession session) {
+        if (!SessionUtil.isAuthed(session)) {
+            return "redirect:/auth";
+        }
+        String error = expenseService.deleteYear(year);
+        if (error != null) {
+            return redirectToMain(null, "yearError=1&msg=" + java.net.URLEncoder.encode(error,
+                    java.nio.charset.StandardCharsets.UTF_8));
+        }
+        return redirectToMain(null, "yearDeleted=" + year);
+    }
+
     /** Прибавление целого числа к сумме категории за выбранный месяц. */
     @PostMapping("/main/amount/add")
     public String addAmount(@RequestParam Long categoryId,
@@ -81,7 +112,7 @@ public class MainController {
         if (value <= 0) {
             return redirectToMain(year, "sumError=1");
         }
-        int y = year != null ? year : Year.now().getValue();
+        int y = year != null ? year : expenseService.resolveDefaultYear();
         expenseService.addAmount(categoryId, y, month, value);
         return redirectToMain(y, "added=1");
     }
@@ -95,19 +126,19 @@ public class MainController {
         if (!SessionUtil.isAuthed(session)) {
             return "redirect:/auth";
         }
-        int y = year != null ? year : Year.now().getValue();
+        int y = year != null ? year : expenseService.resolveDefaultYear();
         expenseService.resetAmount(categoryId, y, month);
         return redirectToMain(y, "reset=1");
     }
 
     private String redirectToMain(Integer year, String param) {
-        int y = year != null ? year : Year.now().getValue();
+        int y = year != null ? year : expenseService.resolveDefaultYear();
         return "redirect:/main?year=" + y + (param.isEmpty() ? "" : "&" + param);
     }
 
     private void prepareModel(Model model, HttpSession session, Integer year) {
         int y = (year != null && expenseService.getAvailableYears().contains(year))
-                ? year : Year.now().getValue();
+                ? year : expenseService.resolveDefaultYear();
         model.addAttribute("year", y);
         model.addAttribute("years", expenseService.getAvailableYears());
         model.addAttribute("monthNames", List.of(ExpenseService.MONTH_NAMES));

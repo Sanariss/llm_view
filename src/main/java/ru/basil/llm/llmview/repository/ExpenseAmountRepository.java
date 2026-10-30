@@ -13,5 +13,9 @@ public interface ExpenseAmountRepository extends JpaRepository<ExpenseAmount, Lo
 
     List<ExpenseAmount> findByYear(int year);
 
+    List<ExpenseAmount> findByYearAndMonth(int year, int month);
+
     void deleteByCategoryId(Long categoryId);
+
+    void deleteByYear(int year);
 }

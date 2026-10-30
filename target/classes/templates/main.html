@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Контроль трат — мои траты</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+
+<div class="topbar">
+    <div class="brand">💰 Контроль трат</div>
+    <div class="user">
+        <span th:if="${fullName}" th:text="'Пользователь: ' + ${fullName}"></span>
+        &nbsp;
+        <a class="btn btn-small btn-secondary" th:href="@{/logout}" style="text-decoration:none">Выйти</a>
+    </div>
+</div>
+
+<div class="layout">
+
+    <!-- ЛЕВОЕ МЕНЮ С КНОПКАМИ -->
+    <aside class="sidebar">
+        <h2>Меню</h2>
+
+        <a class="btn btn-block" th:href="@{/main(year=${year})}" style="text-align:center">📊 Мои траты</a>
+        <a class="btn btn-block btn-secondary" th:href="@{/detail(year=${year})}" style="text-align:center">🔎 Детализация</a>
+
+        <h2 style="margin-top:24px">Годы</h2>
+        <form th:action="@{/main/year/add}" method="post">
+            <div class="form-group">
+                <label for="newYear">Новый год</label>
+                <input type="number" id="newYear" name="year" min="2000" max="2100" step="1"
+                       placeholder="Например, 2027" required>
+            </div>
+            <button type="submit" class="btn btn-block" style="text-align:center">➕ Добавить год</button>
+        </form>
+        <p class="muted">Удалить год можно кнопкой «✖ Удалить год» под переключателем периода. Год удаляется вместе со всеми суммами трат за него.</p>
+
+        <h2 style="margin-top:24px">Добавить категорию трат</h2>
+        <form th:action="@{/main/category/add}" method="post">
+            <input type="hidden" name="year" th:value="${year}">
+            <div class="form-group">
+                <input type="text" name="name" placeholder="Название категории" required>
+            </div>
+            <button type="submit" class="btn btn-block" style="text-align:center">➕ Добавить категорию</button>
+        </form>
+
+        <h2 style="margin-top:24px">Добавить сумму трат</h2>
+        <p class="muted">Целое число прибавляется к уже существующей сумме категории за выбранный месяц.</p>
+        <form th:action="@{/main/amount/add}" method="post">
+            <input type="hidden" name="year" th:value="${year}">
+            <div class="form-group">
+                <label for="catSelect">Категория</label>
+                <select id="catSelect" name="categoryId" style="width:100%">
+                    <option th:each="row : ${rows}"
+                            th:if="${row.id != -1}"
+                            th:value="${row.id}"
+                            th:text="${row.name}"></option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="monthSelect">Месяц</label>
+                <select id="monthSelect" name="month" style="width:100%">
+                    <option th:each="m, st : ${monthNames}" th:value="${st.count}" th:text="${m}"></option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="amountValue">Сумма (целое число)</label>
+                <input type="number" id="amountValue" name="value" min="1" step="1" placeholder="1000" required>
+            </div>
+            <button type="submit" class="btn btn-block" style="text-align:center">➕ Прибавить к сумме</button>
+        </form>
+
+        <h2 style="margin-top:24px">Удаление категорий</h2>
+        <p class="muted">Кнопка «Удалить» в последней колонке таблицы справа. Категория удаляется вместе со всеми её суммами.</p>
+    </aside>
+
+    <!-- ПРАВАЯ ЧАСТЬ: ТАБЛИЦА -->
+    <main class="content">
+        <h1>Таблица трат</h1>
+
+        <div class="alert alert-success" th:if="${actionMessage}" th:text="${actionMessage}"></div>
+        <div class="alert alert-error" th:if="${actionError}" th:text="${actionError}"></div>
+        <div class="alert alert-success" th:if="${param.added}">Сумма трат добавлена в базу.</div>
+        <div class="alert alert-success" th:if="${param.reset}">Сумма за выбранный месяц обнулена.</div>
+        <div class="alert alert-success" th:if="${param.deleted}">Категория удалена.</div>
+        <div class="alert alert-error" th:if="${param.sumError}">Сумма должна быть целым положительным числом.</div>
+        <div class="alert alert-success" th:if="${param.yearAdded}">Год <b th:text="${param.yearAdded}"></b> добавлен.</div>
+        <div class="alert alert-success" th:if="${param.yearDeleted}">Год <b th:text="${param.yearDeleted}"></b> удалён вместе со всеми суммами трат за него.</div>
+        <div class="alert alert-error" th:if="${param.yearError}" th:text="${param.msg}"></div>
+
+        <div class="year-select">
+            <label>Период:</label>
+            <select onchange="window.location.href='main?year='+this.value">
+                <option th:each="y : ${years}" th:value="${y}" th:text="${y}" th:selected="${y == year}"></option>
+            </select>
+            <span class="muted">— год, за который отображаются траты</span>
+            <form th:action="@{/main/year/delete}" method="post" style="display:inline-block; margin-left:12px"
+                  onsubmit="return confirm('Удалить выбранный год и ВСЕ суммы трат за него?');">
+                <input type="hidden" name="year" th:value="${year}">
+                <button type="submit" class="btn btn-danger" th:text="'✖ Удалить год ' + ${year}">✖ Удалить год</button>
+            </form>
+        </div>
+
+        <div class="table-wrap">
+            <table class="expenses">
+                <thead>
+                <tr>
+                    <th th:text="'РАСХОДЫ ' + ${year}">РАСХОДЫ</th>
+                    <th th:each="m : ${monthNames}" th:text="${m}">Месяц</th>
+                    <th>Итого за год</th>
+                    <th>Действия</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="row : ${rows}" th:classappend="${row.id == -1} ? 'total' : ''">
+
+                    <!-- Итоговая строка: название + суммы по месяцам + итог за год -->
+                    <th:block th:if="${row.id == -1}">
+                        <td class="cat" th:text="${row.name}">Итого за каждый месяц</td>
+                        <td th:each="v : ${row.months}" class="num"
+                            th:text="${#numbers.formatDecimal(v, 1, 'COMMA', 2, 'POINT')}">0</td>
+                        <td class="num" th:text="${#numbers.formatDecimal(row.total, 1, 'COMMA', 2, 'POINT')}">0</td>
+                        <td></td>
+                    </th:block>
+
+                    <!-- Строки категорий -->
+                    <th:block th:unless="${row.id == -1}">
+                        <td class="cat" th:title="${row.name}" th:text="${row.name}">Категория</td>
+                        <td th:each="v : ${row.months}" class="num"
+                            th:text="${#numbers.formatDecimal(v, 1, 'COMMA', 2, 'POINT')}">0</td>
+                        <td class="num" th:text="${#numbers.formatDecimal(row.total, 1, 'COMMA', 2, 'POINT')}">0</td>
+                        <td>
+                            <span class="inline-form">
+                                <form th:action="@{/main/amount/reset}" method="post"
+                                      onsubmit="return confirm('Обнулить сумму этой категории за выбранный месяц?');">
+                                    <input type="hidden" name="categoryId" th:value="${row.id}">
+                                    <input type="hidden" name="year" th:value="${year}">
+                                    <select name="month" title="Месяц для обнуления">
+                                        <option th:each="m, st : ${monthNames}" th:value="${st.count}"
+                                                th:text="${m.substring(0,3)}"></option>
+                                    </select>
+                                    <button type="submit" class="btn btn-small" title="Обнулить сумму за месяц">0</button>
+                                </form>
+                                <form th:action="@{/main/category/delete}" method="post"
+                                      onsubmit="return confirm('Удалить категорию и все её суммы?');">
+                                    <input type="hidden" name="categoryId" th:value="${row.id}">
+                                    <input type="hidden" name="year" th:value="${year}">
+                                    <button type="submit" class="btn btn-danger" title="Удалить категорию">✖ Удалить</button>
+                                </form>
+                            </span>
+                        </td>
+                    </th:block>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <p class="muted" style="margin-top:12px">
+            Все данные хранятся в in-memory базе H2: таблицы <b>siteauth</b>, <b>expense_category</b>, <b>expense_amount</b>.
+            Просмотреть базу можно в консоли: <a th:href="@{/h2-console}">/h2-console</a>
+            (JDBC URL: <code>jdbc:h2:mem:expensesdb</code>, пользователь <code>sa</code>, пароль пустой).
+        </p>
+    </main>
+</div>
+
+</body>
+</html>

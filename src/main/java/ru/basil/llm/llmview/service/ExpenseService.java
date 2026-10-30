@@ -5,8 +5,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.basil.llm.llmview.entity.ExpenseAmount;
 import ru.basil.llm.llmview.entity.ExpenseCategory;
+import ru.basil.llm.llmview.entity.ExpenseYear;
 import ru.basil.llm.llmview.repository.ExpenseAmountRepository;
 import ru.basil.llm.llmview.repository.ExpenseCategoryRepository;
+import ru.basil.llm.llmview.repository.ExpenseYearRepository;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -15,8 +17,9 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Сервис трат: категории, суммы по месяцам, удаление категорий, обнуление сумм.
- * Все данные хранятся в in-memory базе (таблицы expense_category и expense_amount).
+ * Сервис трат: категории, суммы по месяцам, удаление категорий, обнуление сумм,
+ * добавление/удаление лет и детализация по месяцам и годам.
+ * Все данные хранятся в in-memory базе (таблицы expense_category, expense_amount, expense_year).
  */
 @Service
 public class ExpenseService {
@@ -29,11 +32,14 @@ public class ExpenseService {
 
     private final ExpenseCategoryRepository categoryRepository;
     private final ExpenseAmountRepository amountRepository;
+    private final ExpenseYearRepository yearRepository;
 
     public ExpenseService(ExpenseCategoryRepository categoryRepository,
-                          ExpenseAmountRepository amountRepository) {
+                          ExpenseAmountRepository amountRepository,
+                          ExpenseYearRepository yearRepository) {
         this.categoryRepository = categoryRepository;
         this.amountRepository = amountRepository;
+        this.yearRepository = yearRepository;
     }
 
     /**
@@ -71,6 +77,22 @@ public class ExpenseService {
         int order = 0;
         for (String name : defaults) {
             categoryRepository.save(new ExpenseCategory(name, ++order));
+        }
+    }
+
+    /**
+     * Стартовые годы: текущий и предыдущие 4 — чтобы переключатель периода
+     * работал сразу после запуска приложения.
+     */
+    @PostConstruct
+    @Transactional
+    public void initDefaultYears() {
+        if (yearRepository.count() > 0) {
+            return;
+        }
+        int current = java.time.Year.now().getValue();
+        for (int y = current; y >= current - 4; y--) {
+            yearRepository.save(new ExpenseYear(y));
         }
     }
 
@@ -178,13 +200,118 @@ public class ExpenseService {
         return rows;
     }
 
+    /** Список годов для переключателя периода (по убыванию). */
     public List<Integer> getAvailableYears() {
-        // Текущий и предыдущие 4 года — переключатель периода
-        int current = java.time.Year.now().getValue();
         List<Integer> years = new ArrayList<>();
-        for (int y = current; y >= current - 4; y--) {
-            years.add(y);
+        for (ExpenseYear y : yearRepository.findAllByOrderByYearDesc()) {
+            years.add(y.getYear());
+        }
+        // Текущий год всегда доступен, даже если все добавленные годы удалены
+        int current = java.time.Year.now().getValue();
+        if (!years.contains(current)) {
+            years.add(0, current);
         }
         return years;
+    }
+
+    /** Год по умолчанию: текущий, либо самый новый из добавленных. */
+    public int resolveDefaultYear() {
+        List<Integer> years = getAvailableYears();
+        int current = java.time.Year.now().getValue();
+        if (years.contains(current)) {
+            return current;
+        }
+        return years.isEmpty() ? current : years.get(0);
+    }
+
+    /** Добавляет год. Возвращает текст ошибки или null при успехе. */
+    @Transactional
+    public String addYear(int year) {
+        if (year < 2000 || year > 2100) {
+            return "Год должен быть в диапазоне 2000–2100";
+        }
+        if (yearRepository.existsByYear(year)) {
+            return "Год " + year + " уже существует";
+        }
+        yearRepository.save(new ExpenseYear(year));
+        return null;
+    }
+
+    /** Удаляет год вместе со всеми суммами трат за этот год. */
+    @Transactional
+    public String deleteYear(int year) {
+        ExpenseYear existing = yearRepository.findByYear(year);
+        if (existing == null) {
+            return "Год " + year + " не найден";
+        }
+        if (yearRepository.findAllByOrderByYearDesc().size() <= 1) {
+            return "Нельзя удалить единственный оставшийся год";
+        }
+        amountRepository.deleteByYear(year);
+        yearRepository.delete(existing);
+        return null;
+    }
+
+    /**
+     * Формирует структуру данных для вкладки «Детализация»:
+     * по каждой категории — сколько раз вносились траты (количество непустых
+     * записей с суммой больше нуля) за выбранный месяц и за весь год.
+     */
+    public List<Map<String, Object>> buildDetail(int year, int month) {
+        Map<Long, Integer> monthCount = new HashMap<>();
+        Map<Long, Integer> yearCount = new HashMap<>();
+        Map<Long, BigDecimal> monthSum = new HashMap<>();
+        Map<Long, BigDecimal> yearSum = new HashMap<>();
+
+        for (ExpenseAmount a : amountRepository.findByYear(year)) {
+            Long catId = a.getCategory().getId();
+            boolean hasValue = a.getAmount() != null && a.getAmount().compareTo(BigDecimal.ZERO) != 0;
+            if (!hasValue) {
+                continue;
+            }
+            yearCount.merge(catId, 1, Integer::sum);
+            yearSum.merge(catId, a.getAmount(), BigDecimal::add);
+            if (a.getMonth() == month) {
+                monthCount.merge(catId, 1, Integer::sum);
+                monthSum.merge(catId, a.getAmount(), BigDecimal::add);
+            }
+        }
+
+        List<Map<String, Object>> rows = new ArrayList<>();
+        int totalMonth = 0;
+        int totalYear = 0;
+        BigDecimal totalMonthSum = BigDecimal.ZERO;
+        BigDecimal totalYearSum = BigDecimal.ZERO;
+
+        for (ExpenseCategory c : getCategories()) {
+            int mCnt = monthCount.getOrDefault(c.getId(), 0);
+            int yCnt = yearCount.getOrDefault(c.getId(), 0);
+            BigDecimal mSum = monthSum.getOrDefault(c.getId(), BigDecimal.ZERO);
+            BigDecimal ySum = yearSum.getOrDefault(c.getId(), BigDecimal.ZERO);
+            totalMonth += mCnt;
+            totalYear += yCnt;
+            totalMonthSum = totalMonthSum.add(mSum);
+            totalYearSum = totalYearSum.add(ySum);
+
+            Map<String, Object> row = new HashMap<>();
+            row.put("id", c.getId());
+            row.put("name", c.getName());
+            row.put("monthCount", mCnt);
+            row.put("yearCount", yCnt);
+            row.put("monthSum", mSum);
+            row.put("yearSum", ySum);
+            rows.add(row);
+        }
+
+        Map<String, Object> totalRow = new HashMap<>();
+        totalRow.put("id", -1L);
+        totalRow.put("name", "ИТОГО");
+        totalRow.put("monthCount", totalMonth);
+        totalRow.put("yearCount", totalYear);
+        totalRow.put("monthSum", totalMonthSum);
+        totalRow.put("yearSum", totalYearSum);
+        rows.add(totalRow);
+
+        return rows;
     }
 }

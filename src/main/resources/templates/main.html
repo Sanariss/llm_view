@@ -23,6 +23,18 @@
         <h2>Меню</h2>
 
         <a class="btn btn-block" th:href="@{/main(year=${year})}" style="text-align:center">📊 Мои траты</a>
+        <a class="btn btn-block btn-secondary" th:href="@{/detail(year=${year})}" style="text-align:center">🔎 Детализация</a>
+
+        <h2 style="margin-top:24px">Годы</h2>
+        <form th:action="@{/main/year/add}" method="post">
+            <div class="form-group">
+                <label for="newYear">Новый год</label>
+                <input type="number" id="newYear" name="year" min="2000" max="2100" step="1"
+                       placeholder="Например, 2027" required>
+            </div>
+            <button type="submit" class="btn btn-block" style="text-align:center">➕ Добавить год</button>
+        </form>
+        <p class="muted">Удалить год можно кнопкой «✖ Удалить год» под переключателем периода. Год удаляется вместе со всеми суммами трат за него.</p>
 
         <h2 style="margin-top:24px">Добавить категорию трат</h2>
         <form th:action="@{/main/category/add}" method="post">
@@ -73,6 +85,9 @@
         <div class="alert alert-success" th:if="${param.reset}">Сумма за выбранный месяц обнулена.</div>
         <div class="alert alert-success" th:if="${param.deleted}">Категория удалена.</div>
         <div class="alert alert-error" th:if="${param.sumError}">Сумма должна быть целым положительным числом.</div>
+        <div class="alert alert-success" th:if="${param.yearAdded}">Год <b th:text="${param.yearAdded}"></b> добавлен.</div>
+        <div class="alert alert-success" th:if="${param.yearDeleted}">Год <b th:text="${param.yearDeleted}"></b> удалён вместе со всеми суммами трат за него.</div>
+        <div class="alert alert-error" th:if="${param.yearError}" th:text="${param.msg}"></div>
 
         <div class="year-select">
             <label>Период:</label>
@@ -80,6 +95,11 @@
                 <option th:each="y : ${years}" th:value="${y}" th:text="${y}" th:selected="${y == year}"></option>
             </select>
             <span class="muted">— год, за который отображаются траты</span>
+            <form th:action="@{/main/year/delete}" method="post" style="display:inline-block; margin-left:12px"
+                  onsubmit="return confirm('Удалить выбранный год и ВСЕ суммы трат за него?');">
+                <input type="hidden" name="year" th:value="${year}">
+                <button type="submit" class="btn btn-danger" th:text="'✖ Удалить год ' + ${year}">✖ Удалить год</button>
+            </form>
         </div>
 
         <div class="table-wrap">
