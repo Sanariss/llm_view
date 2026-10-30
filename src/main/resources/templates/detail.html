@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Контроль трат — детализация</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+
+<div class="topbar">
+    <div class="brand">💰 Контроль трат</div>
+    <div class="user">
+        <span th:if="${fullName}" th:text="'Пользователь: ' + ${fullName}"></span>
+        &nbsp;
+        <a class="btn btn-small btn-secondary" th:href="@{/logout}" style="text-decoration:none">Выйти</a>
+    </div>
+</div>
+
+<div class="layout">
+
+    <!-- ЛЕВОЕ МЕНЮ С КНОПКАМИ -->
+    <aside class="sidebar">
+        <h2>Меню</h2>
+
+        <a class="btn btn-block btn-secondary" th:href="@{/main(year=${year})}" style="text-align:center">📊 Мои траты</a>
+        <a class="btn btn-block" th:href="@{/detail(year=${year}, month=${month})}" style="text-align:center">🔎 Детализация</a>
+
+        <h2 style="margin-top:24px">Описание</h2>
+        <p class="muted">
+            На этой вкладке показано, сколько раз вносились траты по каждой категории
+            за выбранный месяц и за выбранный год, а также суммы этих внесений.
+        </p>
+    </aside>
+
+    <!-- ПРАВАЯ ЧАСТЬ: ТАБЛИЦА ДЕТАЛИЗАЦИИ -->
+    <main class="content">
+        <h1>Детализация трат по категориям</h1>
+
+        <form method="get" th:action="@{/detail}" class="year-select detail-filters">
+            <label for="yearSel">Год:</label>
+            <select id="yearSel" name="year">
+                <option th:each="y : ${years}" th:value="${y}" th:text="${y}" th:selected="${y == year}"></option>
+            </select>
+
+            <label for="monthSel" style="margin-left:12px">Месяц:</label>
+            <select id="monthSel" name="month">
+                <option th:each="m, st : ${monthNames}" th:value="${st.count}" th:text="${m}"
+                        th:selected="${st.count == month}"></option>
+            </select>
+
+            <button type="submit" class="btn btn-small" style="margin-left:12px">Показать</button>
+        </form>
+
+        <div class="table-wrap">
+            <table class="expenses">
+                <thead>
+                <tr>
+                    <th>КАТЕГОРИЯ</th>
+                    <th th:text="'Внесений за ' + ${monthNames[month - 1]}">Внесений за месяц</th>
+                    <th th:text="'Сумма за ' + ${monthNames[month - 1]}">Сумма за месяц</th>
+                    <th th:text="'Внесений за ' + ${year}">Внесений за год</th>
+                    <th th:text="'Сумма за ' + ${year}">Сумма за год</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="row : ${rows}" th:classappend="${row.id == -1} ? 'total' : ''">
+                    <td class="cat" th:title="${row.name}" th:text="${row.name}">Категория</td>
+                    <td class="num" th:text="${row.monthCount}">0</td>
+                    <td class="num" th:text="${#numbers.formatDecimal(row.monthSum, 1, 'COMMA', 2, 'POINT')}">0</td>
+                    <td class="num" th:text="${row.yearCount}">0</td>
+                    <td class="num" th:text="${#numbers.formatDecimal(row.yearSum, 1, 'COMMA', 2, 'POINT')}">0</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <p class="muted" style="margin-top:12px">
+            «Внесений» — количество месяцев (или конкретный выбранный месяц), по которым в базу
+            была добавлена ненулевая сумма трат по категории. Данные берутся из таблицы
+            <b>expense_amount</b> in-memory базы H2.
+        </p>
+    </main>
+</div>
+
+</body>
+</html>

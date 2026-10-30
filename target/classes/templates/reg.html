@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Контроль трат — регистрация</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+<div class="container">
+    <div class="card">
+        <h1>Регистрация</h1>
+        <p class="subtitle">Заполните все поля. Данные сохраняются в in-memory базу (таблица siteauth).</p>
+
+        <!-- Ошибка: логин уже занят -->
+        <div class="alert alert-error" th:if="${regError}" th:text="${regError}"></div>
+
+        <form th:action="@{/reg}" th:object="${registerForm}" method="post">
+            <div class="form-group">
+                <label for="fullName">ФИО *</label>
+                <input type="text" id="fullName" th:field="*{fullName}" placeholder="Иванов Иван Иванович">
+                <div class="field-error" th:if="${#fields.hasErrors('fullName')}" th:errors="*{fullName}"></div>
+            </div>
+            <div class="form-group">
+                <label for="login">Логин *</label>
+                <input type="text" id="login" th:field="*{login}" placeholder="ivan">
+                <div class="field-error" th:if="${#fields.hasErrors('login')}" th:errors="*{login}"></div>
+            </div>
+            <div class="form-group">
+                <label for="password">Пароль *</label>
+                <input type="password" id="password" th:field="*{password}" placeholder="••••••••">
+                <div class="field-error" th:if="${#fields.hasErrors('password')}" th:errors="*{password}"></div>
+            </div>
+
+            <div class="actions">
+                <button type="submit" class="btn">Регистрация</button>
+                <a class="btn btn-secondary" th:href="@{/index}" style="text-align:center">Отмена</a>
+            </div>
+        </form>
+    </div>
+</div>
+</body>
+</html>
